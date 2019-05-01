@@ -142,6 +142,20 @@ namespace NeuralNetwork
 	    return finalOutputs;
 	}
 
+	public void Train(double[] inputs, double[] targets)
+	{
+	    double[,] targetMA = ToMultiArray(targets);
+
+	    double[,] output = Guess(inputs);
+
+	    double[,] outputErrors = Subtract(targetMA, output);
+
+	    double[,] hiddenErrors = Dot(wHidOut, outputErrors);
+
+	    //ADD UPDATING WEIGHTS
+	    //pg 143
+	}
+
 	public double[,] ToMultiArray(double[] array)
 	{
 	    double[,] multiArray = new double[array.Length, 1];
@@ -217,6 +231,28 @@ namespace NeuralNetwork
 		}
 	    }
 
+	    return output;
+	}
+
+	public double[,] Subtract(double[,] a, double[,] b)
+	{
+	    if(a.GetLength(0) != b.GetLength(0) &&
+	       a.GetLength(1) != b.GetLength(1))
+	    {
+		Console.WriteLine("ERROR: Subtract a size [{0},{1}] not equal to be size [{2},{3}]\n", a.GetLength(0), a.GetLength(1), b.GetLength(0), b.GetLength(1));
+		return null;
+	    }
+
+	    double[,] output = new double[a.GetLength(0), a.GetLength(1)];
+	    
+	    for(int i=0; i < a.GetLength(0); i++)
+	    {
+		for(int j=0; j < a.GetLength(1); j++)
+		{
+		    output[i,j] = a[i,j] - b[i,j];
+		}
+	    }
+	    
 	    return output;
 	}
 
