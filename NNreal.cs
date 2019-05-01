@@ -6,9 +6,26 @@ namespace NeuralNetwork
     {
 	public static void Main()
 	{
-	    NeuralNetwork nn = new NeuralNetwork(2, 2, 1);
+	    NeuralNetwork nn = new NeuralNetwork(3, 3, 3);
 	    //nn.Randomize();
 
+	    double[] x = new double[3];
+
+	    x[0] = 0.5;
+	    x[1] = -0.5;
+	    x[2] = 0;
+		
+	    
+	    double[,] output = nn.Guess(x);
+
+	    for(int i=0; i < output.GetLength(0); i++)
+	    {
+		for(int j=0; j < output.GetLength(1); j++)
+		{
+		    Console.WriteLine(output[i,j]);
+		}
+	    }
+	    
 	    /*Node[] tf = new Node[2];
 	    tf[0] = new Node(0);
 	    tf[1] = new Node(1);
@@ -91,14 +108,6 @@ namespace NeuralNetwork
 		    wHidOut[i,j] = Gaussian(0.0, Math.Pow(hiddenNodes, -0.5), rand);
 		}
 	    }
-
-	    for(int i=0; i < wInHid.GetLength(0); i++)
-	    {
-		for(int j=0; j < wInHid.GetLength(1); j++)
-		{
-		    Console.WriteLine(wInHid[i,j]);
-		}
-	    }
 	    
 	}
 
@@ -117,16 +126,117 @@ namespace NeuralNetwork
 	    return 1/(1+Math.Pow(Math.E, -x));
 	}
 
-	public double Guess(double[] inputs)
+	public double[,] Guess(double[] inputs)
 	{
+	    //	    double[,] inputsMatrix = Transpose(ToMultiArray(inputs));
+	    double[,] inputsMatrix = ToMultiArray(inputs);
+
+	    double[,] hiddenInputs = Dot(wInHid, inputsMatrix);
 	    
+	    double[,] hiddenOutputs = SigmoidArray(hiddenInputs);
+
+	    double[,] finalInputs = Dot(wHidOut, hiddenOutputs);
+
+	    double[,] finalOutputs = SigmoidArray(finalInputs);
+	    
+	    return finalOutputs;
 	}
 
-	public double[,] ToMultiArray(double array)
+	public double[,] ToMultiArray(double[] array)
 	{
-	    double[,] multiArray = new double[array.Length, 1);
+	    double[,] multiArray = new double[array.Length, 1];
 
-	    
+	    for(int i=0; i < array.Length; i++)
+	    {
+		multiArray[i,0] = array[i];
+	    }
+
+	    return multiArray;
 	}
+
+	public double[,] Transpose(double[,] matrix)
+	{
+	    int r = matrix.GetLength(0);
+	    int c = matrix.GetLength(1);
+	    
+	    double[,] transposedArray = new double[c,r];
+	    
+	    for(int i=0; i < r; i++)
+	    {
+		for(int j=0; j < c; j++)
+		{
+		    transposedArray[j,i] = matrix[i,j];
+		}
+	    }
+
+	    return transposedArray;
+	}
+
+	public double[,] Dot(double[,] a, double[,] b)
+	{
+	    if(a.GetLength(1) != b.GetLength(0))
+	    {
+		Console.WriteLine("ERROR: a columns {0} not equal to b rows {1}\n", a.GetLength(1), b.GetLength(0));
+		return null;
+	    }
+	    
+	    int r = a.GetLength(0);
+	    int c = b.GetLength(1);
+
+	    double[,] dotArray = new double[r,c];
+	    
+	    for(int i=0; i < r; i++)
+	    {
+		for(int j=0; j < c; j++)
+		{
+		    double sum = 0;
+		    for(int k=0; k < a.GetLength(1); k++)
+		    {
+			sum += a[i,k] * b[k,j];
+		    }
+		    
+		    dotArray[i,j] = sum;
+		}
+	    }
+
+	    return dotArray;
+	}
+
+	public double[,] SigmoidArray(double[,] x)
+	{
+	    int r = x.GetLength(0);
+	    int c = x.GetLength(1);
+
+	    double[,] output = new double[r,c];
+	    
+	    for(int i=0; i < r; i++)
+	    {
+		for(int j=0; j < c; j++)
+		{
+		    output[i,j] = Sigmoid(x[i,j]);
+		}
+	    }
+
+	    return output;
+	}
+
+	
+	/*public double Dot(double[,] a, double[,] b)
+	{
+	    int r = a.GetLength(0);
+	    int c = b.GetLength(1);
+
+	    double dot = 0;
+	    
+	    for(int i=0; i < r; i++)
+	    {
+		for(int j=0; j < c; j++)
+		{
+		    dot += a[i,j] * b[i,j];
+		}
+	    }
+
+	    return dot;
+	}*/
     }
 }
