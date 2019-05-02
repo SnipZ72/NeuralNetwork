@@ -6,23 +6,68 @@ namespace NeuralNetwork
     {
 	public static void Main()
 	{
-	    NeuralNetwork nn = new NeuralNetwork(3, 3, 3);
+	    NeuralNetwork nn = new NeuralNetwork(2, 2, 1);
 	    //nn.Randomize();
 
-	    double[] x = new double[3];
+	    double[] tf = new double[2];
+	    tf[0] = 1;
+	    tf[1] = 0;
 
-	    x[0] = 0.5;
-	    x[1] = -0.5;
-	    x[2] = 0;
-		
+	    double[] ft = new double[2];
+	    tf[0] = 0;
+	    tf[1] = 1;
+
+	    double[] ff = new double[2];
+	    tf[0] = 0;
+	    tf[1] = 0;
+
+	    double[] tt = new double[2];
+	    tf[0] = 1;
+	    tf[1] = 1;
 	    
-	    double[,] output = nn.Guess(x);
+	    double[] tfans = new double[1];
+	    tfans[0] = 1;
 
-	    for(int i=0; i < output.GetLength(0); i++)
+	    double[] ftans = new double[1];
+	    ftans[0] = 1;
+
+	    double[] ttans = new double[1];
+	    ttans[0] = 0;
+
+	    double[] ffans = new double[1];
+	    ffans[0] = 0;
+	    
+	    for(int i=0; i < nn.Guess(tf).GetLength(0); i++)
 	    {
-		for(int j=0; j < output.GetLength(1); j++)
+		for(int j=0; j < nn.Guess(tf).GetLength(1); j++)
 		{
-		    Console.WriteLine(output[i,j]);
+		    Console.WriteLine(nn.Guess(tf)[i,j]);
+		    Console.WriteLine(nn.Guess(ft)[i,j]);
+		    Console.WriteLine(nn.Guess(tt)[i,j]);
+		    Console.WriteLine(nn.Guess(ff)[i,j]);
+		}
+	    }
+
+	    Console.WriteLine("TRAINING...");
+
+	    for(int i=0; i < 1000; i++)
+	    {
+		nn.Train(tf, tfans);
+		nn.Train(ft, ftans);
+		nn.Train(tt, ttans);
+		nn.Train(ff, ffans);
+	    }
+
+	    Console.WriteLine("TRAINED");
+
+	    for(int i=0; i < nn.Guess(tf).GetLength(0); i++)
+	    {
+		for(int j=0; j < nn.Guess(tf).GetLength(1); j++)
+		{
+		    Console.WriteLine(nn.Guess(tf)[i,j]);
+		    Console.WriteLine(nn.Guess(ft)[i,j]);
+		    Console.WriteLine(nn.Guess(tt)[i,j]);
+		    Console.WriteLine(nn.Guess(ff)[i,j]);
 		}
 	    }
 	    
@@ -146,14 +191,63 @@ namespace NeuralNetwork
 	{
 	    double[,] targetMA = ToMultiArray(targets);
 
-	    double[,] output = Guess(inputs);
+	    //REDO Guess -- However we do use some of these variables so we can't just call Guess with inputs
+	    double[,] inputsMatrix = ToMultiArray(inputs);
 
-	    double[,] outputErrors = Subtract(targetMA, output);
+	    double[,] hiddenInputs = Dot(wInHid, inputsMatrix);
+	    
+	    double[,] hiddenOutputs = SigmoidArray(hiddenInputs);
 
-	    double[,] hiddenErrors = Dot(wHidOut, outputErrors);
+	    double[,] finalInputs = Dot(wHidOut, hiddenOutputs);
 
-	    //ADD UPDATING WEIGHTS
-	    //pg 143
+	    double[,] finalOutputs = SigmoidArray(finalInputs);
+	    //End of Guess
+
+	    double[,] outputErrors = Subtract(targetMA, finalOutputs);
+		    
+	    double[,] hiddenErrors = Dot(Transpose(wHidOut), outputErrors);
+
+	    //Console.WriteLine("Started Updating Input-Hidden Weights");
+	    
+	    for(int i=0; i < wInHid.GetLength(0); i++)
+	    {
+		for(int j=0; j < wInHid.GetLength(1); j++)
+		{
+		    //wInHid[i] += learningRate * Dot((hiddenErrors * hiddenOutputs * (1.0 - hiddenOutputs)), inputsMatrix);
+		    wInHid[i,j] += Value(Multiply(Dot((Multiply(Multiply(hiddenErrors, hiddenOutputs), Subtract(hiddenOutputs, 1.0))), Transpose(inputsMatrix)), learningRate));
+		    //wInHid[i,j] = Add(Multiply(Dot((Multiply(Multiply(hiddenErrors, hiddenOutputs), Subtract(hiddenOutputs, 1.0))), inputsMatrix), learningRate), wInHid[i,j]);
+		}
+	    }
+
+	    //Console.WriteLine("Finished Updating Input-Hidden Weights");
+	    
+	   // Console.WriteLine("Started Updating Hidden-Output Weights");
+	    
+	    for(int i=0; i < wHidOut.GetLength(0); i++)
+	    {
+		for(int j=0; j < wHidOut.GetLength(1); j++)
+		{
+		    wHidOut[i,j] += Value(Multiply(Dot((Multiply(Multiply(outputErrors, finalOutputs), Subtract(finalOutputs, 1.0))), Transpose(hiddenOutputs)), learningRate));
+		}
+	    }
+
+	   // Console.WriteLine("Finished Updating Hidden-Output Weights\nFinished Training");
+	}
+
+	public double Value(double[,] a)
+	{
+	    double sum = 0;
+
+	    for(int i=0; i < a.GetLength(0); i++)
+	    {
+		for(int j=0; j < a.GetLength(1); j++)
+		{
+		    sum += a[i,j];
+		}
+	    }	    
+	    
+	    return sum;
+	    
 	}
 
 	public double[,] ToMultiArray(double[] array)
@@ -190,7 +284,7 @@ namespace NeuralNetwork
 	{
 	    if(a.GetLength(1) != b.GetLength(0))
 	    {
-		Console.WriteLine("ERROR: a columns {0} not equal to b rows {1}\n", a.GetLength(1), b.GetLength(0));
+		Console.WriteLine("ERROR: DOT a columns {0} not equal to b rows {1}", a.GetLength(1), b.GetLength(0));
 		return null;
 	    }
 	    
@@ -234,12 +328,87 @@ namespace NeuralNetwork
 	    return output;
 	}
 
+	public double[,] Multiply(double[,] a, double[,] b)
+	{
+	    int r = a.GetLength(0);
+	    int c = a.GetLength(1);
+	    double[,] output = new double[r,c];
+
+	    if(r != b.GetLength(0) && c != b.GetLength(1))
+	    {
+		Console.WriteLine("ERROR: MULTIPLY a size [{0},{1}] not equal to b size [{2},{3}]\n", r, c, b.GetLength(0), b.GetLength(1));
+		return null;
+	    }
+	    
+	    for(int i=0; i < r; i++)
+	    {
+		for(int j=0; j < c; j++)
+		{
+		    output[i,j] = a[i,j] - b[i,j];
+		}
+	    }
+
+	    return output;
+	    
+	}
+
+	public double[,] Multiply(double[,] a, double b)
+	{
+	    double[,] output = new double[a.GetLength(0), a.GetLength(1)];
+	    
+	    for(int i=0; i < a.GetLength(0); i++)
+	    {
+		for(int j=0; j < a.GetLength(1); j++)
+		{
+		    output[i,j] = a[i,j] * b;
+		}
+	    }
+
+	    return output;
+	}
+
+	public double[,] Add(double[,] a, double[,] b)
+	{
+	    if(a.GetLength(0) != b.GetLength(0) &&
+	       a.GetLength(1) != b.GetLength(1))
+	    {
+		Console.WriteLine("ERROR: Add a size [{0},{1}] not equal to b size [{2},{3}]\n", a.GetLength(0), a.GetLength(1), b.GetLength(0), b.GetLength(1));
+		return null;
+	    }
+
+	    double[,] output = new double[a.GetLength(0), a.GetLength(1)];
+	    
+	    for(int i=0; i < a.GetLength(0); i++)
+	    {
+		for(int j=0; j < a.GetLength(1); j++)
+		{
+		    output[i,j] = a[i,j] + b[i,j];
+		}
+	    }
+	    
+	    return output;
+	}
+
+	public double[,] Add(double[,] a, double b)
+	{
+	    double[,] output = new double[a.GetLength(0), a.GetLength(1)];
+	    for(int i=0; i < a.GetLength(0); i++)
+	    {
+		for(int j=0; j < a.GetLength(1); j++)
+		{
+		    output[i,j] = a[i,j] + b;
+		}
+	    }
+
+	    return output;
+	}
+	
 	public double[,] Subtract(double[,] a, double[,] b)
 	{
 	    if(a.GetLength(0) != b.GetLength(0) &&
 	       a.GetLength(1) != b.GetLength(1))
 	    {
-		Console.WriteLine("ERROR: Subtract a size [{0},{1}] not equal to be size [{2},{3}]\n", a.GetLength(0), a.GetLength(1), b.GetLength(0), b.GetLength(1));
+		Console.WriteLine("ERROR: Subtract a size [{0},{1}] not equal to b size [{2},{3}]\n", a.GetLength(0), a.GetLength(1), b.GetLength(0), b.GetLength(1));
 		return null;
 	    }
 
@@ -253,6 +422,20 @@ namespace NeuralNetwork
 		}
 	    }
 	    
+	    return output;
+	}
+
+	public double[,] Subtract(double[,] a, double b)
+	{
+	    double[,] output = new double[a.GetLength(0), a.GetLength(1)];
+	    for(int i=0; i < a.GetLength(0); i++)
+	    {
+		for(int j=0; j < a.GetLength(1); j++)
+		{
+		    output[i,j] = a[i,j] - b;
+		}
+	    }
+
 	    return output;
 	}
 
