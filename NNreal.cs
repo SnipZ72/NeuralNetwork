@@ -186,7 +186,7 @@ namespace NeuralNetwork
 	    
 	    return finalOutputs;
 	}
-
+	
 	public void Train(double[] inputs, double[] targets)
 	{
 	    double[,] targetMA = ToMultiArray(targets);
@@ -208,14 +208,19 @@ namespace NeuralNetwork
 	    double[,] hiddenErrors = Dot(Transpose(wHidOut), outputErrors);
 
 	    //Console.WriteLine("Started Updating Input-Hidden Weights");
+
+	    double[,] ihArr = Multiply(Dot((Multiply(Multiply(hiddenErrors, hiddenOutputs), Subtract(1.0,  hiddenOutputs))), Transpose(inputsMatrix)), learningRate);
+	    double[,] hoArr = Multiply(Dot((Multiply(Multiply(outputErrors, finalOutputs), Subtract(finalOutputs, 1.0))), Transpose(hiddenOutputs)), learningRate);
 	    
 	    for(int i=0; i < wInHid.GetLength(0); i++)
 	    {
 		for(int j=0; j < wInHid.GetLength(1); j++)
 		{
+		    //wInHid += learningRate * Dot((hiddenErrors * hiddenOutputs * (1.0 - hiddenOutputs)), inputsMatrix);
 		    //wInHid[i] += learningRate * Dot((hiddenErrors * hiddenOutputs * (1.0 - hiddenOutputs)), inputsMatrix);
-		    wInHid[i,j] += Value(Multiply(Dot((Multiply(Multiply(hiddenErrors, hiddenOutputs), Subtract(hiddenOutputs, 1.0))), Transpose(inputsMatrix)), learningRate));
-		    //wInHid[i,j] = Add(Multiply(Dot((Multiply(Multiply(hiddenErrors, hiddenOutputs), Subtract(hiddenOutputs, 1.0))), inputsMatrix), learningRate), wInHid[i,j]);
+		    //He Multplies 2 arrays and Plus equals that onto the weight array
+		    //wInHid[i,j] += ihArr[i,j];
+		    wInHid[i,j] += learningRate * Dot(hiddenErrors[i,j] * hiddenOutputs[i,j] * 1.0 - hiddenOutputs[i,j], Transpose(inputsMatrix));
 		}
 	    }
 
@@ -227,7 +232,7 @@ namespace NeuralNetwork
 	    {
 		for(int j=0; j < wHidOut.GetLength(1); j++)
 		{
-		    wHidOut[i,j] += Value(Multiply(Dot((Multiply(Multiply(outputErrors, finalOutputs), Subtract(finalOutputs, 1.0))), Transpose(hiddenOutputs)), learningRate));
+		    wHidOut[i,j] += hoArr[i,j];
 		}
 	    }
 
@@ -433,6 +438,20 @@ namespace NeuralNetwork
 		for(int j=0; j < a.GetLength(1); j++)
 		{
 		    output[i,j] = a[i,j] - b;
+		}
+	    }
+
+	    return output;
+	}
+
+	public double[,] Subtract(double a, double[,] b)
+	{
+	    double[,] output = new double[b.GetLength(0), b.GetLength(1)];
+	    for(int i=0; i < b.GetLength(0); i++)
+	    {
+		for(int j=0; j < b.GetLength(1); j++)
+		{
+		    output[i,j] = a - b[i,j];
 		}
 	    }
 
