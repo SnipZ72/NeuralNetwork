@@ -6,7 +6,7 @@ namespace NeuralNetwork
     {
 	public static void Main()
 	{
-	    NeuralNetwork nn = new NeuralNetwork(2, 2, 1);
+	    NeuralNetwork nn = new NeuralNetwork(2, 4, 1);
 	    //nn.Randomize();
 
 	    double[] tf = new double[2];
@@ -14,16 +14,16 @@ namespace NeuralNetwork
 	    tf[1] = 0;
 
 	    double[] ft = new double[2];
-	    tf[0] = 0;
-	    tf[1] = 1;
+	    ft[0] = 0;
+	    ft[1] = 1;
 
 	    double[] ff = new double[2];
-	    tf[0] = 0;
-	    tf[1] = 0;
+	    ff[0] = 0;
+	    ff[1] = 0;
 
 	    double[] tt = new double[2];
-	    tf[0] = 1;
-	    tf[1] = 1;
+	    tt[0] = 1;
+	    tt[1] = 1;
 	    
 	    double[] tfans = new double[1];
 	    tfans[0] = 1;
@@ -127,7 +127,7 @@ namespace NeuralNetwork
 	public NeuralNetwork(int inputs, int hidden, int outputs, double lr = 0.03)
 	{
 
-	    Random rand = new Random();
+	    Random rand = new Random(0);
 	    
 	    inputNodes = inputs;
 	    hiddenNodes = hidden;
@@ -204,13 +204,27 @@ namespace NeuralNetwork
 	    //End of Guess
 
 	    double[,] outputErrors = Subtract(targetMA, finalOutputs);
-		    
+	    
 	    double[,] hiddenErrors = Dot(Transpose(wHidOut), outputErrors);
 
 	    //Console.WriteLine("Started Updating Input-Hidden Weights");
 
-	    double[,] ihArr = Multiply(Dot((Multiply(Multiply(hiddenErrors, hiddenOutputs), Subtract(1.0,  hiddenOutputs))), Transpose(inputsMatrix)), learningRate);
 	    double[,] hoArr = Multiply(Dot((Multiply(Multiply(outputErrors, finalOutputs), Subtract(finalOutputs, 1.0))), Transpose(hiddenOutputs)), learningRate);
+	    double[,] ihArr = Multiply(Dot((Multiply(Multiply(hiddenErrors, hiddenOutputs), Subtract(hiddenOutputs, 1.0))), Transpose(inputsMatrix)), learningRate);
+	    
+	    for(int i=0; i < hoArr.GetLength(0); i++)
+	    {
+		for(int j=0; j < hoArr.GetLength(1); j++)
+		    Console.Write(" HOARRAY " + hoArr[i,j]);
+		Console.WriteLine();
+	    }
+	    
+	    for(int i=0; i < ihArr.GetLength(0); i++)
+	    {
+		for(int j=0; j < ihArr.GetLength(1); j++)
+		    Console.Write(" IHARRAY " + ihArr[i,j]);
+		Console.WriteLine();
+	    }
 	    
 	    for(int i=0; i < wInHid.GetLength(0); i++)
 	    {
@@ -219,8 +233,8 @@ namespace NeuralNetwork
 		    //wInHid += learningRate * Dot((hiddenErrors * hiddenOutputs * (1.0 - hiddenOutputs)), inputsMatrix);
 		    //wInHid[i] += learningRate * Dot((hiddenErrors * hiddenOutputs * (1.0 - hiddenOutputs)), inputsMatrix);
 		    //He Multplies 2 arrays and Plus equals that onto the weight array
-		    //wInHid[i,j] += ihArr[i,j];
-		    wInHid[i,j] += learningRate * Dot(hiddenErrors[i,j] * hiddenOutputs[i,j] * 1.0 - hiddenOutputs[i,j], Transpose(inputsMatrix));
+		    wInHid[i,j] += ihArr[i,j];
+		    //wInHid[i,j] += learningRate * Dot(hiddenErrors[i,j] * hiddenOutputs[i,j] * 1.0 - hiddenOutputs[i,j], Transpose(inputsMatrix));
 		}
 	    }
 
@@ -232,6 +246,7 @@ namespace NeuralNetwork
 	    {
 		for(int j=0; j < wHidOut.GetLength(1); j++)
 		{
+		    //wHidOut[i,j] += learningRate * Dot(outputErrors[i,j] * finalOutputs[i,j] * 1.0 - finalOutputs[i,j], Transpose(hiddenOutputs));
 		    wHidOut[i,j] += hoArr[i,j];
 		}
 	    }
@@ -365,7 +380,7 @@ namespace NeuralNetwork
 	    {
 		for(int j=0; j < a.GetLength(1); j++)
 		{
-		    output[i,j] = a[i,j] * b;
+		    output[i,j] = b * a[i,j];
 		}
 	    }
 
@@ -432,30 +447,51 @@ namespace NeuralNetwork
 
 	public double[,] Subtract(double[,] a, double b)
 	{
-	    double[,] output = new double[a.GetLength(0), a.GetLength(1)];
+	    //Console.WriteLine("B AFTER A");
+	    double[,] subAOut = new double[a.GetLength(0), a.GetLength(1)];
 	    for(int i=0; i < a.GetLength(0); i++)
 	    {
 		for(int j=0; j < a.GetLength(1); j++)
 		{
-		    output[i,j] = a[i,j] - b;
+		    subAOut[i,j] = b - a[i,j];
 		}
 	    }
 
-	    return output;
+	    /*Console.WriteLine("START A OUT");
+	    for(int i=0; i < a.GetLength(0); i++)
+	    {
+		for(int j=0; j < a.GetLength(1); j++)
+		{
+		    Console.WriteLine("A[{0},{1}] " + subAOut[i,j], i,j);
+		}
+	    }
+	    Console.WriteLine("END A OUT");*/
+	    return subAOut;
 	}
 
-	public double[,] Subtract(double a, double[,] b)
+	public double[,] Subtract(double c, double[,] d)
 	{
-	    double[,] output = new double[b.GetLength(0), b.GetLength(1)];
+	    //Console.WriteLine("A BEFORE B");
+	    double[,] subOut = new double[d.GetLength(0), d.GetLength(1)];
+	    for(int i=0; i < d.GetLength(0); i++)
+	    {
+		for(int j=0; j < d.GetLength(1); j++)
+		{
+		    subOut[i,j] = c - d[i,j];
+		}
+	    }
+
+	    /*Console.WriteLine("START B OUT");
 	    for(int i=0; i < b.GetLength(0); i++)
 	    {
 		for(int j=0; j < b.GetLength(1); j++)
 		{
-		    output[i,j] = a - b[i,j];
+		    Console.WriteLine("B[{0},{1}] " + subOut[i,j], i,j);
 		}
 	    }
-
-	    return output;
+	    Console.WriteLine("END B OUT");*/
+	    
+	    return subOut;
 	}
 
 	
